@@ -136,7 +136,7 @@ return (0);
 * @cmd_type:..
 * Return:..
 */
-void shell_execute(char **command, int cmd_type)
+void shell_execute(char **command, int cmd_type, data_h *p)
 {
 int stat;
 pid_t PID;
@@ -147,7 +147,7 @@ PID = fork();
 
 if (PID == 0)
 {
-execute(command, cmd_type);
+execute(command, cmd_type, p);
 }
 if (PID < 0)
 {
@@ -158,7 +158,7 @@ else
 wait(&stat);
 }
 else
-execute(command, cmd_type);
+execute(command, cmd_type, p);
 }
 
 /**
@@ -195,9 +195,9 @@ return (INVALID_CMD);
 * @cmd_type:..
 * Return:..
 */
-void execute(char **commands, int cmd_type)
+void execute(char **commands, int cmd_type, data_h *var)
 {
-void (*func)(char **command);
+void (*func)(char **command, data_h *);
 
 switch (cmd_type)
 {
@@ -212,8 +212,9 @@ break;
 }
 case INTERNAL_CMD:
 {
+printf("<<got here>>\n");
 func = get_func(commands[0]);
-func(commands);
+func(commands, var);
 break;
 }
 case PATH_CMD:

@@ -8,10 +8,14 @@
 
 int main (int argc __attribute__((unused)), char **argv)
 {
+data_h *var;
 char *line;
 char **args;
 char cmd_type;
+
 (void) argv;
+var.oldpath = NULL;
+ 
 signal(SIGINT, main_c);
 while (1)
 {
@@ -30,7 +34,7 @@ args = tokenize(line, DELIM);
 /*printf("<<%s>>\n", args[i++]);*/
 /*return (1);*/
 cmd_type = check_command(args[0]);
-shell_execute(args, cmd_type);
+shell_execute(args, cmd_type, &var);
 }
 return (1);
 }
