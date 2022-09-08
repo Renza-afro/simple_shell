@@ -1,75 +1,94 @@
 #include "shell.h"
 
 /**
-* tokenize - tokenizes command string
-* @tokens: tokens_t struct containing initial string and array of strings
-* @string: command string
+* **strtow - splits a string into words. Repeat delimiters are ignored
+* @str: the input string
+* @d: the delimeter string
+* Return: a pointer to an array of strings, or NULL on failure
 */
-void tokenize(tokens_t *tokens, const char *string)
-{
-unsigned int l, string_idx, data_idx, tokens_idx;
-unsigned int skip_next, skip_quote, is_token;
-char *data, symbol;
 
-l = (_strlen(string) == 0 ? 1 : _strlen(string));
-init_tokens(tokens, l);
-data = safe_malloc((l * 2 + 1) * sizeof(char));
-string_idx = data_idx = tokens_idx = skip_next = skip_quote = is_token = 0;
-while ((symbol = string[string_idx++]) != '\0' && symbol != '#')
+char **strtow(char *str, char *d)
 {
-if (!is_token && _isspace(symbol))
-continue;
-if (!is_token && !_isspace(symbol) && (symbol != ';'))
-tokens->tokens[tokens_idx++].str = data + data_idx, is_token = 1;
-if (is_token && _isspace(symbol) && !skip_next && !skip_quote)
+int i, j, k, m, numwords = 0;
+char **s;
+
+if (str == NULL || str[0] == 0)
+return (NULL);
+if (!d)
+d = " ";
+for (i = 0; str[i] != '\0'; i++)
+if (!is_delim(str[i], d) && (is_delim(str[i + 1], d) || !str[i + 1]))
+numwords++;
+
+if (numwords == 0)
+return (NULL);
+s = malloc((1 + numwords) * sizeof(char *));
+if (!s)
+return (NULL);
+for (i = 0, j = 0; j < numwords; j++)
 {
-data[data_idx++] = '\0', is_token = 0;
-continue;
-}
-if ((symbol == ';') && !skip_next && !skip_quote)
+while (is_delim(str[i], d))
+i++;
+k = 0;
+while (!is_delim(str[i + k], d) && str[i + k])
+k++;
+s[j] = malloc((k + 1) * sizeof(char));
+if (!s[j])
 {
-if (is_token)
-data[data_idx++] = '\0';
-tokens->tokens[tokens_idx++].str = data + data_idx;
-data[data_idx++] = ';', data[data_idx++] = '\0', is_token = 0;
-continue;
+for (k = 0; k < j; k++)
+free(s[k]);
+free(s);
+return (NULL);
 }
-if ((symbol == '\"' || symbol == '\'') && !skip_next)
-{
-skip_quote = !skip_quote;
-continue;
+for (m = 0; m < k; m++)
+s[j][m] = str[i++];
+s[j][m] = 0;
 }
-if ((symbol == '\\') && !skip_next)
-{
-skip_next = 1;
-continue;
-}
-skip_next = 0, data[data_idx++] = symbol;
-}
-cleanup_tokens(tokens, tokens_idx, data);
+s[j] = NULL;
+return (s);
 }
 
 /**
- * cleanup_tokens - cleans up tokeniz functions
-* @tokens: the tokenized tokens variable
-* @tokens_idx: the index referring to the tokens
-* @data: pointer used to store the data in tokens, only used in this
-* function to free the memory there
+* **strtow2 - splits a string into words
+* @str: the input string
+* @d: the delimeter
+* Return: a pointer to an array of strings, or NULL on failure
 */
-void cleanup_tokens(tokens_t *tokens, unsigned int tokens_idx, char *data)
+char **strtow2(char *str, char d)
 {
-unsigned int i;
+int i, j, k, m, numwords = 0;
+char **s;
 
-tokens->tokensN = tokens_idx;
-token_classify(tokens);
-delete_dups(tokens);
-
-if (tokens->tokensN)
+if (str == NULL || str[0] == 0)
+return (NULL);
+for (i = 0; str[i] != '\0'; i++)
+if ((str[i] != d && str[i + 1] == d) ||
+(str[i] != d && !str[i + 1]) || str[i + 1] == d)
+numwords++;
+if (numwords == 0)
+return (NULL);
+s = malloc((1 + numwords) * sizeof(char *));
+if (!s)
+return (NULL);
+for (i = 0, j = 0; j < numwords; j++)
 {
-if (tokens->tokens[tokens->tokensN - 1].id == TOKEN_SEMICOLON)
-tokens->tokensN--;
-for (i = 0; i < tokens->tokensN; i++)
-tokens->tokens[i].str = _strdup((char *)tokens->tokens[i].str);
+while (str[i] == d && str[i] != d)
+i++;
+k = 0;
+while (str[i + k] != d && str[i + k] && str[i + k] != d)
+k++;
+s[j] = malloc((k + 1) * sizeof(char));
+if (!s[j])
+{
+for (k = 0; k < j; k++)
+free(s[k]);
+free(s);
+return (NULL);
 }
-free(data);
+for (m = 0; m < k; m++)
+s[j][m] = str[i++];
+s[j][m] = 0;
+}
+s[j] = NULL;
+return (s);
 }

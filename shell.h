@@ -1,8 +1,9 @@
-#ifndef SIMPLE_SHELL
-#define SIMPLE_SHELL
+#ifndef SIMPLE_SHELL_H
+#define SIMPLE_SHELL_H
 
 /* included standard library headers */
 #include <stdio.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -12,16 +13,20 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdarg.h>
+#include <errno.h>
 #include <signal.h>
 
 /* included structs */
-#include "struct.h"
+/*#include "struct.h"*/
 
 /* -----MACROS----- */
 #define BUFSIZE 1024
 #define EXT_SUCCESS 0
 #define EXT_FAILURE 1
 #define TRUE (1 == 1)
+#define READ_BUF_SIZE 1024
+#define WRITE_BUF_SIZE 1024
+#define BUF_FLUSH -1
 #define FALSE (!TRUE)
 
 /* this defines the macros for token_t struct */
@@ -35,161 +40,219 @@
 #define TOKEN_AND        7
 #define TOKEN_OR         8
 
+/* for command chaining */
+#define CMD_NORM	0
+#define CMD_OR		1
+#define CMD_AND		2
+#define CMD_CHAIN	3
+
+/* for convert_number() */
+#define CONVERT_LOWERCASE	1
+#define CONVERT_UNSIGNED	2
+
 /* -----environ----- */
 extern char **environ;
 
-/* ---------------main--------------- */
-ssize_t _getline(char **buffer, size_t *limit);
-int _filemode(int fd);
-ssize_t _readline(int fd, char **buffer, size_t *limit);
+/**
+* struct liststr - singly linked list
+* @num: the number field
+* @str: a string
+* @next: points to the next node
+*/
+typedef struct liststr
+{
+int num;
+char *str;
+struct liststr *next;
+} list_t;
 
-/* --------- arguments inventory ---------- */
-arg_inventory_t *buildarginv(void);
-char *set_name(env_t *envlist, char *name);
+/**
+*struct passinfo - contains pseudo-arguements to pass into a function,		
+*allowing uniform prototype for function pointer struct
+*@arg: a string generated from getline containing arguements
+*@argv: an array of strings generated from arg
+*@path: a string path for the current command
+*@argc: the argument count
+*@line_count: the error count
+*@err_num: the error code for exit()s
+*@linecount_flag: if on count this line of input
+*@fname: the program filename
+*@env: linked list local copy of environ
+*@environ: custom modified copy of environ from LL env
+*@history: the history node
+*@alias: the alias node
+*@env_changed: on if environ was changed
+*@status: the return status of the last exec'd command
+*@cmd_buf: address of pointer to cmd_buf, on if chaining
+*@cmd_buf_type: CMD_type ||, &&, ;
+*@readfd: the fd from which to read line input
+*@histcount: the history line number count
+*/
+typedef struct passinfo
+{
+char *arg;
+char **argv;
+char *path;
+int argc;
+unsigned int line_count;
+int err_num;
+int linecount_flag;
+char *fname;
+list_t *env;
+list_t *history;
+list_t *alias;
+char **environ;
+int env_changed;
+int status;
 
-/* ---------------execute--------------- */
-pid_t execute(arg_inventory_t *arginv);
-int exec_builtins(arg_inventory_t *arginv);
-pid_t exec_path(char *command, arg_inventory_t *arginv);
-/*void safe_dup2(int new_fd, int old_fd);*/
-/* int redirect_output(arg_inventory_t *arginv, int close_dup); */
-/* int redirect_input(arg_inventory_t *arginv); */
+char **cmd_buf; /* pointer to cmd ; chain buffer, for memory mangement */
+int cmd_buf_type; /* CMD_type ||, &&, ; */
+int readfd;
+int histcount;
+} info_t;
+
+#define INFO_INIT \
+{NULL, NULL, NULL, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, \
+0, 0, 0}
+
+/**
+*struct builtin - contains a builtin string and related function
+*@type: the builtin command flag
+*@func: the function
+*/
+typedef struct builtin
+{
+char *type;
+int (*func)(info_t *);
+} builtin_table;
+
+
+/* --------- exit ---------- */
+char *_strncpy(char *, char *, int);
+char *_strncat(char *, char *, int);
+char *_strchr(char *, char);
+
+/*-------- shellvar----------*/
+int is_chain(info_t *, char *, size_t *);
+void check_chain(info_t *, char *, size_t *, size_t, size_t);
+int replace_alias(info_t *);
+int replace_vars(info_t *);
+int replace_string(char **, char *);
 
 /* ---------------tokenizer--------------- */
-int delete_tokens(tokens_t *tokens);
-void tokenize(tokens_t *tokens, const char *string);
-int is_redirection(int token_id);
-void init_tokens(tokens_t *tokens, int length);
-void delete_dups(tokens_t *tokens);
-void token_classify(tokens_t *tokens);
-void cleanup_tokens(tokens_t *tokens, unsigned int tokens_idx, char *data);
+char **strtow(char *, char *);
+char **strtow2(char *, char);
 
-/* -------custom environ------- */
-env_t *env_list(void);
-char **separate_string(char *string);
-unsigned int link_count(env_t *head);
-char **zelda_to_ganondorf(env_t *head);
-env_t *add_node_env(env_t **head, char *var, char *val);
-int modify_node_env(env_t **head, char *new_var, char *new_val);
-int remove_node_env(env_t **head, char *var);
+
+/* -------environ------- */
+char *_getenv(info_t *, const char *);
+int _env(info_t *);
+int _ssetenv(info_t *);
+int _unssetenv(info_t *);
+int populate_env_list(info_t *);
+
+char **get_environ(info_t *);
+int _unsetenv(info_t *, char *);
+int _setenv(info_t *, char *, char *);
 
 /* ---------------builtin--------------- */
-int _arsine(arg_inventory_t *arginv);
-int _envi(arg_inventory_t *arginv);
-int _setenv(arg_inventory_t *arginv);
-int _history(arg_inventory_t *arginv);
-int _cd(arg_inventory_t *arginv);
-int _alias(arg_inventory_t *arginv);
-int _unalias(arg_inventory_t *arginv);
-int the_help(arg_inventory_t *arginv);
-int load_alias(arg_inventory_t *arginv);
-int save_alias(arg_inventory_t *arginv);
-int the_exit(arg_inventory_t *arginv);
+int _shellexit(info_t *);
+int _shellcd(info_t *);
+int _shellhelp(info_t *);
+
+int _shellhistory(info_t *);
+int _shellalias(info_t *);
 
 /* ---------------strings--------------- */
-char *_strncpy(char *dest, char *src, int n);
-char *_strdup(char *str);
+/*int _strlen(char *);*/
 unsigned int _strlen(const char *str);
-char *_strcpy(char *dest, char *src);
-char *_strncat(char *dest, char *src, int n);
-int _strcmp(const char *s1, const char *s2);
-int _strncmp(char *s1, char *s2, unsigned int n);
-int _unsetenv(arg_inventory_t *arginv);
-char *_strcat(char *dest, char *src);
-char *int_to_str(unsigned int n);
-void replace_str(char **old_str, char *new_str, int i, int j, int flg);
-char *_str_replace(char *string, unsigned int start, unsigned int end,
-				   char *rep);
+int _strcmp(char *, char *);
+char *starts_with(const char *, const char *);
+char *_strcat(char *, char *);
+
+char *_strcpy(char *, char *);
+char *_strdup(const char *);
+void _puts(char *);
+int _putchar(char);
 
 /* -----custom C std lib----- */
-char _isspace(char c);
-int _atoi(char *s);
-void _perror(char *string);
-void _memmove(void *dest, void *src, size_t n);
-int is_uint(char *num);
+int loophsh(char **);
 
-/* ---------------custom malloc--------------- */
-char *mem_reset(char *str, int bytes);
-void *safe_malloc(int size);
-void *_realloc(void *ptr, unsigned int old_size, unsigned int new_size);
+/* ---------------errors--------------- */
+void _putstring(char *);
+int _stutchar(char);
+int _putfd(char c, int fd);
+int _putsfd(char *str, int fd);
+
+int _atoierror(char *);
+void print_error(info_t *, char *);
+int print_d(int, int);
+char *convert_number(long int, int, int);
+void remove_comments(char *);
 
 /* ---------------history--------------- */
-history_t *history_list(arg_inventory_t *arginv);
-history_t *add_node_history(history_t **head, char *command);
-int file_history(arg_inventory_t *arginv);
-char *history_to_string(history_t *head);
-history_t *init_history(history_t *head, char *buffer);
+char *get_history_file(info_t *info);
+int write_history(info_t *info);
+int read_history(info_t *info);
+int build_history_list(info_t *info, char *buf, int linecount);
+int renumber_history(info_t *info);
 
-/* -----alias----- */
-int write_alias(alias_t *head);
-alias_t *alias_list(void);
-alias_t *add_node_alias(alias_t **head, char *alias, char *command);
-int modify_node_alias(alias_t **head, char *new_var, char *new_val);
-int remove_node_alias(alias_t **head, char *var);
-alias_t *fetch_node_alias(alias_t *head, char *var);
 
-/* ---------------cd--------------- */
-char *yellow_brick_road(char **commands, env_t *envlist);
-env_t *fetch_node(env_t *head, char *var);
+/* ---------------allocation--------------- */
+char *_memset(char *, char, unsigned int);
+void ffree(char **);
+void *_realloc(void *, unsigned int, unsigned int);
+int bfree(void **);
 
-/* ---------------write--------------- */
-int write_uint(unsigned int n);
-unsigned int write_history(history_t *head);
-void _puts(char *str);
-size_t print_list(env_t *head);
-int _putchar(char c);
+/* ---------------atoi--------------- */
+int interactive(info_t *);
+int is_delim(char, char *);
+int _isalpha(int);
+int _atoi(char *);
 
-/* ---------------file I/O--------------- */
-ssize_t read_textfile(char *filename, size_t letters);
-int trunc_text_to_file(char *filename, char *text_content);
-int append_text_to_file(char *filename, char *text_content);
+/* ---------------list--------------- */
+list_t *add_node(list_t **, const char *, int);
+list_t *add_node_end(list_t **, const char *, int);
+size_t print_list_str(const list_t *);
+int delete_node_at_index(list_t **, unsigned int);
+void free_list(list_t **);
 
-/* ---------------path--------------- */
-int locate_path(char *path, env_t *envlist);
-int cat_path(char **search_path, char *cmd);
-int is_path(char *command);
-int count_paths(char *path_str);
-char **tokenize_path(char *path_str);
-void free_paths(char **paths);
-
-/* ---------------ptree--------------- */
-ptree_t *ptree_new_node(ptree_t *parent);
-ptree_t *ptree_new_string_node(ptree_t *parent, tokens_t *tokens,
-							   unsigned int *cur_token);
-int delete_ptree(ptree_t *node);
+size_t list_len(const list_t *);
+char **list_to_strings(list_t *);
+size_t print_list(const list_t *);
+list_t *node_starts_with(list_t *, char *, char);
+ssize_t get_node_index(list_t *, list_t *);
 
 /* ---------------parser--------------- */
-int parse_error(token_t *near);
-ptree_t *parse_expr(unsigned int *ntoken, tokens_t *tokens, ptree_t *lhs,
-					int min_prec);
-int parse(parser_t *parser, tokens_t *tokens);
-int delete_parser(parser_t *parser);
-void expand_bash_vars(arg_inventory_t *arginv);
-int expand_alias(arg_inventory_t *arginv);
+int is_cmd(info_t *, char *);
+char *dup_chars(char *, int, int);
+char *find_path(info_t *, char *, char *);
 
-/* ---------------worker--------------- */
-unsigned int init_pipeline_count_processes(ptree_t *tree);
-int init_pipeline_push_processes(pipeline_t *pipeline, ptree_t *tree);
-int init_pipeline(pipeline_t *pipeline, ptree_t *ptree);
-int worker_execute_core(arg_inventory_t *arginv);
-int worker_execute(arg_inventory_t *arginv);
-int delete_pipeline(pipeline_t *pipeline);
+/* --------------shelcmd--------------- */
+int hsh(info_t *, char **);
+int find_builtin(info_t *);
+void find_cmd(info_t *);
+void fork_cmd(info_t *);
 
-/* ---------------free--------------- */
-int freeall(arg_inventory_t *arginv);
-int free_environ(env_t *head);
-int free_history(history_t *head);
-int free_alias(alias_t *head);
+/* ----getline---- */
+ssize_t get_input(info_t *);
+int _getline(info_t *, char **, size_t *);
+void sigintHandler(int);
 
-/* ----help---- */
-void h_exit(void);
-void h_arsine(void);
-void h_env(void);
-void h_setenv(void);
-void h_unsetenv(void);
-void h_history(void);
-void h_cd(void);
-void h_alias(void);
-void h_help(void);
+void clear_info(info_t *);
+void set_info(info_t *, char **);
+void free_info(info_t *, int);
+
+/*----- shell exit-----------*/
+char *_strncpy(char *, char *, int);
+char *_strncat(char *, char *, int);
+char *_strchr(char *, char);
+
+/* 1 if using system getline() */
+#define USE_GETLINE 0
+#define USE_STRTOK 0
+
+#define HIST_FILE	".simple_shell_history"
+#define HIST_MAX	4096
 
 #endif

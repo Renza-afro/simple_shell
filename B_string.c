@@ -19,46 +19,70 @@ dest[c] = '\0';
 return (dest);
 }
 
-/**
-* _strncpy - copies string from source to destination
-* @dest: destination string
-* @src: source string to be copied
-* @n: bytes to be copied from source string
-*
-* Return: destination string concatenated
-*/
-char *_strncpy(char *dest, char *src, int n)
-{
-int j;
-
-for (j = 0; j < n && src[j] != '\0'; j++)
-dest[j] = src[j];
-
-while (j < n)
-{
-dest[j] = '\0';
-j++;
-}
-
-return (dest);
-}
 
 /**
-* _strcat - concatenates from src string to dest string
-* @dest: destination string
-* @src: source string
+* _strdup - duplicates a string
+* @str: the string to duplicate
 *
-* Return: pointer to destination
+* Return: pointer to the duplicated string
 */
-char *_strcat(char *dest, char *src)
+char *_strdup(const char *str)
 {
-while (*dest)
-dest++;
+int length = 0;
+char *ret;
 
-while (*src)
-*(dest++) = *(src++);
+if (str == NULL)
+return (NULL);
+while (*str++)
+length++;
+ret = malloc(sizeof(char) * (length + 1));
+if (!ret)
+return (NULL);
+for (length++; length--;)
+ret[length] = *--str;
+return (ret);
+}
 
-*dest = '\0';
 
-return (dest);
+/**
+*_puts - prints an input string
+*@str: the string to be printed
+*
+* Return: Nothing
+*/
+void _puts(char *str)
+{
+int i = 0;
+
+if (!str)
+return;
+while (str[i] != '\0')
+{
+_putchar(str[i]);
+i++;
+}
+}
+
+
+/**
+* _putchar - writes the character c to stdout
+* @c: The character to print
+*
+* Return: On success 1.
+* On error, -1 is returned, and errno is set appropriately.
+*/
+
+int _putchar(char c)
+{
+static int i;
+static char buf[WRITE_BUF_SIZE];
+
+if (c == BUF_FLUSH || i >= WRITE_BUF_SIZE)
+{
+write(1, buf, i);
+i = 0;
+}
+if (c != BUF_FLUSH)
+buf[i++] = c;
+return (1);
 }

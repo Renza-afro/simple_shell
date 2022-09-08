@@ -1,87 +1,90 @@
 #include "shell.h"
 
 /**
-* link_count - counts number of nodes in linked list
-* @head: pointer to head of linked list
-*
-* Return: number of nodes
+* _env - prints the current environment
+* @info: Structure containing potential arguments. Used to maintain
+* constant function prototype.
+* Return: Always 0
 */
-unsigned int link_count(env_t *head)
+int _env(info_t *info)
 {
-env_t *tmp;
-unsigned int count;
-
-tmp = head;
-count = 0;
-
-while (tmp != NULL)
-{
-tmp = tmp->next;
-count++;
-}
-
-return (count);
+print_list_str(info->env);
+return (0);
 }
 
 /**
-* env_list - creates a linked list
-* Return: head (pointer to first node of linked list of environ variables)
+* _getenv - gets the value of an environ variable
+* @info: Structure containing potential arguments. Used to maintain
+* @name: env var name
+*
+* Return: the value
 */
-env_t *env_list(void)
+char *_getenv(info_t *info, const char *name)
+{
+list_t *node = info->env;
+char *p;
+
+while (node)
+{
+p = starts_with(node->str, name);
+if (p && *p)
+return (p);
+node = node->next;
+}
+return (NULL);
+}
+
+/**
+* _setenv - Initialize a new environment vari
+* @info: Structure containing potential argument
+* Return: Always 0
+*/
+
+int _ssetenv(info_t *info)
+{
+if (info->argc != 3)
+{
+_putstring("Incorrect number of arguements\n");
+return (1);
+}
+if (_setenv(info, info->argv[1], info->argv[2]))
+return (0);
+return (1);
+}
+
+/**
+* _unsetenv->remove an environment variable
+* @info: Structure containing potential arguments.
+* Return: Always 0
+*/
+
+int _unssetenv(info_t *info)
 {
 int i;
-env_t *head;
-char **variable;
 
-head = NULL;
-for (i = 0; environ[i] != NULL; i++)
+if (info->argc == 1)
 {
-variable = separate_string(environ[i]);
-if (add_node_env(&head, variable[0], variable[1]) == NULL)
-return (NULL);
-free(variable[0]);
-free(variable[1]);
-free(variable);
+_putstring("Too few arguements.\n");
+return (1);
 }
+for (i = 1; i <= info->argc; i++)
+_unsetenv(info, info->argv[i]);
 
-return (head);
+return (0);
 }
 
 /**
-* zelda_to_ganondorf->converts linked list to double pointer
-* @head: head pointer
-* Return: array of pointers,*strings
+* populate_env_list - populates env linked list
+* @info: Structure containing potential arguments.
+* Return: Always 0
 */
-char **zelda_to_ganondorf(env_t *head)
+int populate_env_list(info_t *info)
 {
-int x;
-unsigned int count, lenA, lenB, newLen;
-char **ganondorf, *var, *val, *new_val;
-env_t *tmp;
+list_t *node = NULL;
+size_t i;
 
-count = link_count(head);
-ganondorf = malloc(sizeof(char *) * (count + 1));
-
-tmp = head;
-x = 0;
-while (tmp != NULL)
-{
-var = tmp->var;
-val = tmp->val;
-lenA = _strlen(var);
-lenB = _strlen(val);
-
-newLen = lenA + lenB + 2;
-new_val = safe_malloc(newLen *sizeof(char));
-
-_strncat(new_val, var, lenA);
-_strncat(new_val, "=", 1);
-_strncat(new_val, val, lenB);
-ganondorf[x] = new_val;
-tmp = tmp->next;
-x++;
-}
-ganondorf[x] = NULL;
-
-return (ganondorf);
+for (i = 0; environ[i]; i++)
+add_node_end(&node, environ[i], 0);
+info->env = node;
+return (0);
 }

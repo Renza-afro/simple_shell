@@ -1,59 +1,45 @@
 #include "shell.h"
 
+
 /**
-* sig_handler - handles user input of ^C with the following
-* @sig: integer value of signal to change, will be SIGINT = ^C
+* main - entry point
+* @ac: arg count
+* @av: arg vector
 *
-* Return: void
+* Return: 0 on success, 1 on error
 */
-void sig_handler(int sig)
+int main(int ac, char **av)
 {
-(void) sig;
-_puts("");
-write(STDOUT_FILENO, "$ ", 2);
+info_t info[] = { INFO_INIT };
+int fd = 2;
+
+asm ("mov %1, %0\n\t"
+"add $3, %0"
+: "=r" (fd)
+: "r" (fd));
+
+if (ac == 2)
+{
+fd = open(av[1], O_RDONLY);
+if (fd == -1)
+{
+if (errno == EACCES)
+exit(126);
+if (errno == ENOENT)
+{
+_putstring(av[0]);
+_putstring(": 0: Can't open ");
+_putstring(av[1]);
+_putchar('\n');
+_putchar(BUF_FLUSH);
+exit(127);
 }
-
-/**
-* main - custom shell
-* Return: 0
-*/
-int main(void)
-{
-arg_inventory_t *arginv;
-int exit_status;
-
-arginv = buildarginv();
-signal(SIGINT, sig_handler);
-while (!arginv->exit)
-{
-if (arginv->st_mode)
-write(STDOUT_FILENO, "$ ", 2);
-if (!_getline(&arginv->input_commands, &arginv->buflimit))
-break;
-add_node_history(&arginv->history, arginv->input_commands);
-
-tokenize(&arginv->tokens, arginv->input_commands);
-
-if (arginv->tokens.tokensN > 0)
-{
-expand_bash_vars(arginv);
-
-if (parse(&arginv->parser, &arginv->tokens))
-{
-delete_parser(&arginv->parser);
-delete_tokens(&arginv->tokens);
-continue;
+return (EXIT_FAILURE);
 }
-
-worker_execute(arginv);
-delete_parser(&arginv->parser);
+info->readfd = fd;
 }
-
-mem_reset(arginv->input_commands, BUFSIZE);
-
-delete_tokens(&arginv->tokens);
-}
-exit_status = freeall(arginv);
-
-return (exit_status);
+populate_env_list(info);
+read_history(info);
+hsh(info, av);
+return (EXIT_SUCCESS);
 }

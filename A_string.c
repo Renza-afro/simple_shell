@@ -1,59 +1,26 @@
 #include "shell.h"
 
 /**
-* _strncat - concatenates from src string to dest string
+* _strcat - concatenates from src string to dest string
 * @dest: destination string
 * @src: source string
 * @n: number of bytes to concatenate
 *
 * Return: pointer to destination
 */
-char *_strncat(char *dest, char *src, int n)
+char *_strcat(char *dest, char *src)
 {
-int i = 0, j = 0;
 
-while (dest[i] != '\0')
-i++;
+char *rev = dest;
 
-while (j < n && src[j] != '\0')
-{
-dest[i] = src[j];
-i++;
-j++;
+while (*dest)
+dest++;
+while (*src)
+*dest++ = *src++;
+*dest = *src;
+return (rev);
 }
 
-dest[i] = '\0';
-
-return (dest);
-}
-
-/**
-* _strcmp - compares string
-* @s1: first string
-* @s2: second string
-*
-* Return: difference between two ascii valuves
-*/
-
-int _strcmp(const char *s1, const char *s2)
-{
-int i;
-
-i = 0;
-
-while (TRUE)
-{
-if (s1[i] != s2[i])
-return (s1[i] - s2[i]);
-
-if (s1[i] == '\0' || s2[i] == '\0')
-break;
-
-i++;
-}
-
-return (0);
-}
 
 /**
 * _strlen - finds and returns length of string
@@ -71,46 +38,39 @@ i++;
 return (i);
 }
 
+
 /**
-* _strdup - takes a string and copies to another a new memory location
-* @str: string to copy
+* starts_with - checks if needle starts with haystack
+* @haystack: string to search
+* @needle: the substring to find
 *
-* Return: pointer to copied string
+* Return: address of next char of haystack or NULL
 */
-char *_strdup(char *str)
+char *starts_with(const char *haystack, const char *needle)
 {
-unsigned int len, j;
-char *ptrstring;
-
-if (str == NULL)
+while (*needle)
+if (*needle++ != *haystack++)
 return (NULL);
-
-len = _strlen(str);
-
-ptrstring = safe_malloc((len + 1) * sizeof(char));
-
-for (j = 0; j < len; j++)
-ptrstring[j] = str[j];
-ptrstring[j] = '\0';
-
-return (ptrstring);
+return ((char *)haystack);
 }
 
 /**
 * _strncmp - checks if 2 strings are of equal value and length
 * @s1: first string
 * @s2: second string
-* @n: number of bytes to compare
-*
 * Return: difference of first chars of diff value or 0 on success
 */
-int _strncmp(char *s1, char *s2, unsigned int n)
+int _strcmp(char *s1, char *s2)
 {
-unsigned int j;
-
-for (j = 0; j < n; j++)
-if (s1[j] != s2[j])
-return (s1[j] - s2[j]);
-
+while (*s1 && *s2)
+{
+if (*s1 != *s2)
+return (*s1 - *s2);
+s1++;
+s2++;
+}
+if (*s1 == *s2)
 return (0);
+else
+return (*s1 < *s2 ? -1 : 1);
 }

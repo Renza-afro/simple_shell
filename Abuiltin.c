@@ -1,120 +1,95 @@
 #include "shell.h"
 
 /**
-* _envi - writes env
-* @arginv:.....
-* Return: 0 on success
+* _shellexit-> exits the shell
+* @info: Structure containing potential arguments
+* Return: exits with a given exit
 */
-int _envi(arg_inventory_t *arginv)
+int _shellexit(info_t *info)
 {
-env_t *envlist = arginv->envlist;
-char **commands;
+int exitcheck;
 
-commands = (char **)arginv->commands;
-
-if (commands[1] != NULL)
+if (info->argv[1])
 {
-_perror("env: No such file or directory\n");
-return (-1);
+exitcheck = _atoierror(info->argv[1]);
+if (exitcheck == -1)
+{
+info->status = 2;
+print_error(info, "Illegal number: ");
+_putstring(info->argv[1]);
+_putchar('\n');
+return (1);
 }
-
-print_list(envlist);
-
-return (EXT_SUCCESS);
+info->err_num = _atoierror(info->argv[1]);
+return (-2);
+}
+info->err_num = -1;
+return (-2);
 }
 
 /**
-* _history - writes history to stdout
-* @arginv: arguments inventory
-*
-* Return: 0 on success
+* _shellcd->changes the current directory of the process
+* @info: Structure containing potential arguments
+* Return: Always 0
 */
-int _history(arg_inventory_t *arginv)
+
+int _shellcd(info_t *info)
 {
-history_t *historylist = arginv->history;
+char *s, *dir, buffer[1024];
+int chdir_ret;
 
-write_history(historylist);
-
-return (EXT_SUCCESS);
+s = getcwd(buffer, 1024);
+if (!s)
+_puts("TODO: >>getcwd failure emsg here<<\n");
+if (!info->argv[1])
+{
+dir = _getenv(info, "HOME=");
+if (!dir)
+chdir_ret = /* TODO: what should this be? */
+chdir((dir = _getenv(info, "PWD=")) ? dir : "/");
+else
+chdir_ret = chdir(dir);
+}
+else if (_strcmp(info->argv[1], "-") == 0)
+{
+if (!_getenv(info, "OLDPWD="))
+{
+_puts(s);
+_putchar('\n');
+return (1);
+}
+_puts(_getenv(info, "OLDPWD=")), _putchar('\n');
+chdir_ret = /* TODO: what should this be? */
+chdir((dir = _getenv(info, "OLDPWD=")) ? dir : "/");
+}
+else
+chdir_ret = chdir(info->argv[1]);
+if (chdir_ret == -1)
+{
+print_error(info, "can't change directory to ");
+_putstring(info->argv[1]), _putchar('\n');
+}
+else
+{
+_setenv(info, "OLDPWD", _getenv(info, "PWD="));
+_setenv(info, "PWD", getcwd(buffer, 1024));
+}
+return (0);
 }
 
 /**
-* _setenv - sets new environmental variable
-* @arginv: arguments inventory
-*
-* Return: 0 on success
+* _shellhelp->changes the current directory of the process
+* @info: Structure containing potential arguments.
+* Return: Always 0
 */
-int _setenv(arg_inventory_t *arginv)
+
+int _shellhelp(info_t *info)
 {
-char **commands, *new_var, *new_val;
-env_t *envlist = arginv->envlist;
+char **arg_array;
 
-commands = (char **)arginv->commands;
-
-if (commands[1] == NULL || commands[2] == NULL)
-{
-_perror("setenv: missing parameters.\n");
-return (-1);
-}
-
-if (commands[3] != NULL)
-{
-_perror("setenv: missing value.\n");
-return (-1);
-}
-
-new_var = commands[1];
-new_val = commands[2];
-
-if (modify_node_env(&envlist, new_var, new_val) == EXT_FAILURE)
-{
-add_node_env(&envlist, new_var, new_val);
-}
-
-return (EXT_SUCCESS);
-}
-
-/**
-* _unsetenv - sets new environmental variable
-* @arginv: arguments inventory
-*
-* Return: 0 on success
-*/
-int _unsetenv(arg_inventory_t *arginv)
-{
-char **commands;
-env_t *envlist = arginv->envlist;
-
-commands = (char **)arginv->commands;
-
-if (commands[1] == NULL)
-{
-_perror("unsetenv: missing parameters.\n");
-return (-1);
-}
-
-if (commands[2] != NULL)
-{
-_perror("unsetenv: too many input commands.\n");
-return (-1);
-}
-
-if (remove_node_env(&envlist, commands[1]))
-return (EXT_FAILURE);
-
-return (EXT_SUCCESS);
-}
-
-/**
-* _arsine - prints lisa ascii art
-* @arginv: arguments inventory
-* Return: 0 on success
-*/
-int _arsine(arg_inventory_t *arginv)
-{
-(void)arginv;
-
-_puts("AsH3 special thanks to Walter White");
-
-return (EXT_SUCCESS);
+arg_array = info->argv;
+_puts("help call works. Function not yet implemented \n");
+if (0)
+_puts(*arg_array);
+return (0);
 }

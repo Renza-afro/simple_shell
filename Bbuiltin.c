@@ -1,133 +1,111 @@
 #include "shell.h"
 
 /**
-* _alias - builtin func to set alias
-* @arginv: arguments inventory
-*
-* Return: 0 on success
+* _shellhistory - displays the history list, one command by line, preceded
+* with line numbers, starting at 0.
+* @info: Structure containing potential arguments. Used to maintain
+* Return: Always 0
 */
-int _alias(arg_inventory_t *arginv)
+int _shellhistory(info_t *info)
 {
-char *input, **combo, **commands;
-
-commands = (char **)arginv->commands;
-
-if (commands[1] == NULL)
-{
-write_alias(arginv->alias);
-return (EXT_SUCCESS);
-}
-else if (commands[2] != NULL)
-{
-_perror("alias: too many arguments.\n");
-return (-1);
-}
-
-input = commands[1];
-
-combo = separate_string(input);
-
-if (modify_node_alias(&arginv->alias, combo[0], combo[1]) == EXT_FAILURE)
-add_node_alias(&arginv->alias, combo[0], combo[1]);
-
-free(combo[0]);
-free(combo[1]);
-free(combo);
-return (EXT_SUCCESS);
+print_list(info->history);
+return (0);
 }
 
 /**
-* _unalias - builtin func to unset alias
-* @arginv: arguments inventory
-*
-* Return: 0 on success
+* unset_alias - sets alias to string
+* @info: parameter struct
+* @str: the string alias
+* Return: Always 0 on success, 1 on error
 */
-int _unalias(arg_inventory_t *arginv)
+int unset_alias(info_t *info, char *str)
 {
-char **commands;
+char *p, c;
+int ret;
 
-commands = (char **)arginv->commands;
-
-if (commands[1] == NULL)
-{
-_perror("unalias: missing arguments.\n");
-return (-1);
-}
-
-if (commands[2] != NULL)
-{
-_perror("unalias: too many arguments.\n");
-return (-1);
-}
-
-if (remove_node_alias(&arginv->alias, commands[1]) == EXT_SUCCESS)
-return (EXT_SUCCESS);
-
-return (EXT_FAILURE);
+p = _strchr(str, '=');
+if (!p)
+return (1);
+c = *p;
+*p = 0;
+ret = delete_node_at_index(&(info->alias),
+get_node_index(info->alias, node_starts_with(info->alias, str, -1)));
+*p = c;
+return (ret);
 }
 
 /**
-* the_help - prints help commands info based on the other input argument
-* @arginv: arguments inventory
-*
-* Return: 0 on success
+* set_alias - sets alias to string
+* @info: parameter struct
+* @str: the string alias
+* Return: Always 0 on success, 1 on error
 */
-int the_help(arg_inventory_t *arginv)
+int set_alias(info_t *info, char *str)
 {
-char **commands;
-int i = 0, retval = 127;
-bins_t bins[] = {
-{"exit", h_exit}, {"arsine", h_arsine}, {"env", h_env},
-{"setenv", h_setenv}, {"unsetenv", h_unsetenv},
-{"history", h_history}, {"cd", h_cd}, {"alias", h_alias},
-{"help", h_help},
-{NULL, NULL}
-};
+char *p;
 
+p = _strchr(str, '=');
+if (!p)
+return (1);
+if (!*++p)
+return (unset_alias(info, str));
 
-commands = (char **)arginv->commands;
-if (commands[2] != NULL)
-{
-_perror("help: too many input commands.\n");
-return (retval);
-}
-
-while (bins[i].function != NULL)
-{
-if (_strcmp(bins[i].function, commands[1]) == 0)
-{
-bins[i].help();
-retval = EXT_SUCCESS;
-break;
-}
-i++;
-}
-
-return (retval);
+unset_alias(info, str);
+return (add_node_end(&(info->alias), str, 0) == NULL);
 }
 
 /**
-* the_exit - exit status to exit
-* @arginv: arguments inventory
-*
-* Return: 0 on success
+* print_alias - prints an alias string
+* @node: the alias node
+* Return: Always 0 on success, 1 on error
 */
-int the_exit(arg_inventory_t *arginv)
+int print_alias(list_t *node)
 {
-char **commands;
-int es;
+char *p = NULL, *a = NULL;
 
-commands = (char **)arginv->commands;
-if (commands[1] == NULL)
-arginv->exit = 1;
-else if (is_uint(commands[1]))
+if (node)
 {
-es = _atoi(commands[1]);
-arginv->exit = 1;
-arginv->exit_status = es;
+p = _strchr(node->str, '=');
+for (a = node->str; a <= p; a++)
+_putchar(*a);
+_putchar('\'');
+_puts(p + 1);
+_puts("'\n");
+return (0);
 }
+return (1);
+}
+
+/**
+* _shellalias->mimics the alias builtin (man alias)
+* @info: Structure containing potential arguments
+* Return: Always 0
+*/
+
+int _shellalias(info_t *info)
+{
+int x = 0;
+char *p = NULL;
+list_t *node = NULL;
+
+if (info->argc == 1)
+{
+node = info->alias;
+while (node)
+{
+print_alias(node);
+node = node->next;
+}
+return (0);
+}
+for (x = 1; info->argv[x]; x++)
+{
+p = _strchr(info->argv[x], '=');
+if (p)
+set_alias(info, info->argv[x]);
 else
-_perror("exit: Illegal number\n");
+print_alias(node_starts_with(info->alias, info->argv[x], '='));
+}
 
-return (EXT_SUCCESS);
+return (0);
 }
