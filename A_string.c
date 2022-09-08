@@ -4,8 +4,6 @@
 * _strcat - concatenates from src string to dest string
 * @dest: destination string
 * @src: source string
-* @n: number of bytes to concatenate
-*
 * Return: pointer to destination
 */
 char *_strcat(char *dest, char *src)
@@ -55,7 +53,7 @@ return ((char *)haystack);
 }
 
 /**
-* _strncmp - checks if 2 strings are of equal value and length
+* _strcmp->checks if 2 strings are of equal value and length
 * @s1: first string
 * @s2: second string
 * Return: difference of first chars of diff value or 0 on success

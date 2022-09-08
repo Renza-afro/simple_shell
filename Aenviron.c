@@ -35,7 +35,7 @@ return (NULL);
 }
 
 /**
-* _setenv - Initialize a new environment vari
+* _ssetenv - Initialize a new environment vari
 * @info: Structure containing potential argument
 * Return: Always 0
 */
@@ -53,7 +53,7 @@ return (1);
 }
 
 /**
-* _unsetenv->remove an environment variable
+* _unssetenv->remove an environment variable
 * @info: Structure containing potential arguments.
 * Return: Always 0
 */
